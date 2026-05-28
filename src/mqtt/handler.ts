@@ -1,5 +1,6 @@
 import { logger } from '../logger.js';
 import { writeTelemetry } from '../influx/writer.js';
+import { emitVehicleUpdate } from '../realtime/emitter.js';
 import { updateVehicleState } from '../state/vehicleState.js';
 import { statusSchema, telemetrySchema } from './schemas.js';
 
@@ -52,6 +53,16 @@ function handleTelemetry(topic: string, json: unknown): void {
     speed: t.speed,
     fuel: t.fuel,
     updatedAt: timestamp,
+  });
+
+  emitVehicleUpdate({
+    vehicleId: t.vehicleId,
+    lat: t.lat,
+    lng: t.lng,
+    speed: t.speed,
+    fuel: t.fuel,
+    status: t.status,
+    timestamp: t.timestamp,
   });
 }
 
