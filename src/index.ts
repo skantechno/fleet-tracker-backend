@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { startMqtt } from './mqtt/client.js';
 import { authRouter } from './routes/auth.js';
 import { geofencesRouter } from './routes/geofences.js';
 import { vehiclesRouter } from './routes/vehicles.js';
@@ -26,5 +27,7 @@ const server = app.listen(config.PORT, () => {
   logger.info(`Server listening on http://localhost:${config.PORT}`);
 });
 
+const mqttClient = startMqtt();
+
 export default app;
-export { server };
+export { server, mqttClient };
