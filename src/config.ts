@@ -20,6 +20,11 @@ const envSchema = z.object({
   INFLUX_TOKEN: z.string().min(1),
   INFLUX_ORG: z.string().min(1),
   INFLUX_BUCKET: z.string().min(1),
+
+  MQTT_URL: z.string().min(1),
+  MQTT_CLIENT_ID: z.string().default('fleet-tracker-backend'),
+  MQTT_USERNAME: z.string().optional(),
+  MQTT_PASSWORD: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
