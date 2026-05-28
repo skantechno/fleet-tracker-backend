@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { startMqtt } from './mqtt/client.js';
 import { setSocketServer } from './realtime/emitter.js';
 import { createSocketServer } from './realtime/server.js';
+import { alertsRouter } from './routes/alerts.js';
 import { authRouter } from './routes/auth.js';
 import { geofencesRouter } from './routes/geofences.js';
 import { vehiclesRouter } from './routes/vehicles.js';
@@ -24,6 +25,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/vehicles', vehiclesRouter);
 app.use('/api/geofences', geofencesRouter);
+app.use('/api/alerts', alertsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

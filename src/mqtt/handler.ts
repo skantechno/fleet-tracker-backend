@@ -1,4 +1,5 @@
 import { logger } from '../logger.js';
+import { detectAlerts } from '../alerts/detector.js';
 import { writeTelemetry } from '../influx/writer.js';
 import { emitVehicleUpdate } from '../realtime/emitter.js';
 import { updateVehicleState } from '../state/vehicleState.js';
@@ -63,6 +64,10 @@ function handleTelemetry(topic: string, json: unknown): void {
     fuel: t.fuel,
     status: t.status,
     timestamp: t.timestamp,
+  });
+
+  void detectAlerts(t).catch((err: unknown) => {
+    logger.error({ err, vehicleId: t.vehicleId }, 'Alert detection failed');
   });
 }
 
