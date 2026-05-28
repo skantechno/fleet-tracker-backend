@@ -39,7 +39,7 @@ HTTP status codes: 200, 201, 204, 400, 401, 403, 404, 422 (validation), 500.
 
 ### Pagination
 
-Paginated list endpoints accept `?page=<n>&pageSize=<n>` (defaults `page=1`, `pageSize=20`; `pageSize` max `100`) and include a `meta.pagination` block:
+Paginated list endpoints accept `?page=<n>&limit=<n>` (defaults `page=1`, `limit=20`; `limit` max `100`). The client sends only `page` and `limit`; the server derives `offset = (page - 1) * limit`. Responses include a `meta.pagination` block:
 
 ```json
 {
@@ -48,7 +48,7 @@ Paginated list endpoints accept `?page=<n>&pageSize=<n>` (defaults `page=1`, `pa
   "meta": {
     "pagination": {
       "page": 1,
-      "pageSize": 20,
+      "limit": 20,
       "total": 213,
       "totalPages": 11,
       "hasNext": true,
@@ -112,7 +112,7 @@ GET    /vehicles/:id/history?from=ISO&to=ISO
 ### Alerts
 
 ```
-GET    /alerts?page=1&pageSize=50
+GET    /alerts?page=1&limit=50
        → 200: { success: true, data: [{ id, vehicleId, type, message, severity, timestamp, acknowledged }], meta: { pagination } }
        (types: "speed_violation" | "geofence_exit" | "low_fuel" | "offline")
 

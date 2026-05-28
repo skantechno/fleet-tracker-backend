@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export interface PaginationMeta {
   page: number;
-  pageSize: number;
+  limit: number;
   total: number;
   totalPages: number;
   hasNext: boolean;
@@ -76,13 +76,13 @@ export function sendError(
 
 export function buildPagination(
   page: number,
-  pageSize: number,
+  limit: number,
   total: number,
 ): PaginationMeta {
-  const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 0;
+  const totalPages = limit > 0 ? Math.ceil(total / limit) : 0;
   return {
     page,
-    pageSize,
+    limit,
     total,
     totalPages,
     hasNext: page < totalPages,
@@ -92,11 +92,16 @@ export function buildPagination(
 
 const paginationQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
-export type PaginationParams = z.infer<typeof paginationQuerySchema>;
+export interface PaginationParams {
+  page: number;
+  limit: number;
+  offset: number;
+}
 
 export function parsePagination(query: unknown): PaginationParams {
-  return paginationQuerySchema.parse(query);
+  const { page, limit } = paginationQuerySchema.parse(query);
+  return { page, limit, offset: (page - 1) * limit };
 }
