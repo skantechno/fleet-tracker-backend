@@ -40,11 +40,36 @@ npm run dev
 npm run simulator
 ```
 
-Backend listens on `http://localhost:3000`. Health check: `GET /health`.
+Backend listens on `http://localhost:3000`.
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the server with hot reload (tsx watch) |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm start` | Run the compiled server |
+| `npm run simulator` | Publish fake telemetry for 5 vehicles |
+| `npm run db:generate` | Generate a drizzle migration from the schema |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Seed 2 users + 5 vehicles |
+| `npm run typecheck` | Type-check without emitting |
+| `npm test` | Run vitest |
 
 ## API
 
-See [API_CONTRACT.md](./API_CONTRACT.md) for the full REST + Socket.io + MQTT specification shared with the frontend.
+See [API_CONTRACT.md](./API_CONTRACT.md) for the full REST + Socket.io + MQTT specification shared with the frontend. All responses use a `{ success, data, meta? }` / `{ success, error }` envelope.
+
+## Operations & hardening
+
+- **Security headers** via `helmet`; **CORS** restricted to `CORS_ORIGIN`.
+- **Rate limiting**: `/api/*` is capped at 120 requests/minute per IP (429 `RATE_LIMITED` on exceed).
+- **Health**: `GET /health` reports live connectivity and returns `200` when all of Postgres, InfluxDB, and MQTT are connected, otherwise `503`:
+  ```json
+  { "success": true, "data": { "status": "ok",
+    "services": { "postgres": "connected", "influx": "connected", "mqtt": "connected" } } }
+  ```
+- **Graceful shutdown**: on `SIGINT`/`SIGTERM` the process closes MQTT, flushes & closes the InfluxDB writer, closes Socket.io and the HTTP server, then drains the Postgres pool.
 
 ## Seed credentials
 
