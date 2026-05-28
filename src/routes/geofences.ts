@@ -8,6 +8,7 @@ import { HttpError } from '../middleware/error.js';
 import { requireRole } from '../middleware/rbac.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendCreated, sendNoContent, sendSuccess } from '../utils/apiResponse.js';
+import { invalidateGeofenceCache } from '../alerts/geofenceCache.js';
 
 export const geofencesRouter = Router();
 
@@ -55,6 +56,8 @@ geofencesRouter.post(
       })
       .returning();
 
+    invalidateGeofenceCache();
+
     sendCreated(res, {
       id: created.id,
       name: created.name,
@@ -78,6 +81,7 @@ geofencesRouter.delete(
       throw new HttpError(404, 'Geofence not found', 'NOT_FOUND');
     }
 
+    invalidateGeofenceCache();
     sendNoContent(res);
   }),
 );
