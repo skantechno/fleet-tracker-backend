@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
+import { ZodError } from 'zod';
 import { logger } from '../logger.js';
+import { sendError } from '../utils/apiResponse.js';
 
 export class HttpError extends Error {
   constructor(
@@ -14,7 +16,7 @@ export class HttpError extends Error {
 }
 
 export function notFoundHandler(_req: Request, res: Response): void {
-  res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' });
+  sendError(res, 404, 'NOT_FOUND', 'Not found');
 }
 
 export function errorHandler(
@@ -25,14 +27,15 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   if (err instanceof HttpError) {
-    res.status(err.status).json({
-      error: err.message,
-      code: err.code,
-      ...(err.details !== undefined ? { details: err.details } : {}),
-    });
+    sendError(res, err.status, err.code, err.message, err.details);
+    return;
+  }
+
+  if (err instanceof ZodError) {
+    sendError(res, 422, 'VALIDATION_ERROR', 'Validation failed', err.flatten());
     return;
   }
 
   logger.error({ err }, 'Unhandled error');
-  res.status(500).json({ error: 'Internal server error', code: 'INTERNAL' });
+  sendError(res, 500, 'INTERNAL', 'Internal server error');
 }

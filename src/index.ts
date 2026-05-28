@@ -2,13 +2,14 @@ import express from 'express';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { sendSuccess } from './utils/apiResponse.js';
 
 const app = express();
 
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  sendSuccess(res, { status: 'ok' });
 });
 
 app.use(notFoundHandler);
