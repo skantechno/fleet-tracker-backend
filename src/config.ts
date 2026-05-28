@@ -15,6 +15,11 @@ const envSchema = z.object({
 
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('7d'),
+
+  INFLUX_URL: z.string().url(),
+  INFLUX_TOKEN: z.string().min(1),
+  INFLUX_ORG: z.string().min(1),
+  INFLUX_BUCKET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
