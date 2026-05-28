@@ -5,6 +5,6 @@ dist/
 *.log
 .DS_Store
 coverage/
-.vscode/
+.vscode/*
 !.vscode/extensions.json
 .idea/
