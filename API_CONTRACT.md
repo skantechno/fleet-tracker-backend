@@ -4,6 +4,62 @@
 
 ---
 
+## 0. Response Envelope
+
+**Every JSON response uses a consistent envelope.** Clients can branch on the boolean `success` field.
+
+### Success
+
+```json
+{
+  "success": true,
+  "data": <payload>,
+  "meta": { /* optional — present only on paginated list responses */ }
+}
+```
+
+- `data` holds the endpoint payload (object or array).
+- `meta` is omitted unless there is metadata to return (currently only `pagination`).
+- `204 No Content` responses (e.g. `DELETE`) have an **empty body** — no envelope.
+
+### Error
+
+```json
+{
+  "success": false,
+  "error": {
+    "message": "Human-readable message",
+    "code": "MACHINE_READABLE_CODE",
+    "details": { /* optional */ }
+  }
+}
+```
+
+HTTP status codes: 200, 201, 204, 400, 401, 403, 404, 422 (validation), 500.
+
+### Pagination
+
+Paginated list endpoints accept `?page=<n>&limit=<n>` (defaults `page=1`, `limit=20`; `limit` max `100`). The client sends only `page` and `limit`; the server derives `offset = (page - 1) * limit`. Responses include a `meta.pagination` block:
+
+```json
+{
+  "success": true,
+  "data": [ /* items */ ],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 213,
+      "totalPages": 11,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+---
+
 ## 1. Authentication
 
 JWT (HS256 for dev, RS256 with JWKs for production-ready bonus). Bearer token in `Authorization` header for REST; passed as auth payload for Socket.io.
@@ -29,55 +85,55 @@ Base URL: `http://localhost:3000/api`
 ```
 POST   /auth/login
        body: { email, password }
-       → 200: { token, user: { id, email, role } }
-       → 401: { error: "Invalid credentials" }
+       → 200: { success: true, data: { token, user: { id, email, role } } }
+       → 401: { success: false, error: { message: "Invalid credentials", code: "INVALID_CREDENTIALS" } }
 
 GET    /auth/me
        headers: Authorization: Bearer <token>
-       → 200: { id, email, role }
-       → 401: { error: "Unauthorized" }
+       → 200: { success: true, data: { id, email, role } }
+       → 401: { success: false, error: { message: "Unauthorized", code: "UNAUTHORIZED" } }
 ```
 
 ### Vehicles
 
 ```
 GET    /vehicles
-       → 200: [{ id, name, status, lastLat, lastLng, lastSpeed, lastFuel, lastUpdate }]
+       → 200: { success: true, data: [{ id, name, status, lastLat, lastLng, lastSpeed, lastFuel, lastUpdate }] }
        (filtered by role: dispatchers see only their assigned)
 
 GET    /vehicles/:id
-       → 200: { id, name, status, lastLat, lastLng, lastSpeed, lastFuel, lastUpdate }
+       → 200: { success: true, data: { id, name, status, lastLat, lastLng, lastSpeed, lastFuel, lastUpdate } }
 
 GET    /vehicles/:id/history?from=ISO&to=ISO
-       → 200: [{ timestamp, lat, lng, speed, fuel }]
+       → 200: { success: true, data: [{ timestamp, lat, lng, speed, fuel }] }
        (queries InfluxDB; default last 1 hour if no params)
 ```
 
 ### Alerts
 
 ```
-GET    /alerts?limit=50
-       → 200: [{ id, vehicleId, type, message, severity, timestamp, acknowledged }]
+GET    /alerts?page=1&limit=50
+       → 200: { success: true, data: [{ id, vehicleId, type, message, severity, timestamp, acknowledged }], meta: { pagination } }
        (types: "speed_violation" | "geofence_exit" | "low_fuel" | "offline")
 
 POST   /alerts/:id/acknowledge
-       → 200: { acknowledged: true }
+       → 200: { success: true, data: { acknowledged: true } }
 ```
 
 ### Geofences (admin only)
 
 ```
 GET    /geofences
-       → 200: [{ id, name, coordinates, type }]
+       → 200: { success: true, data: [{ id, name, coordinates, type }] }
        (coordinates: array of [lat, lng] pairs forming a polygon)
        (type: "allow" | "deny")
 
 POST   /geofences
        body: { name, coordinates, type }
-       → 201: { id, name, coordinates, type }
+       → 201: { success: true, data: { id, name, coordinates, type } }
 
 DELETE /geofences/:id
-       → 204
+       → 204  (empty body)
 ```
 
 ---
@@ -205,12 +261,16 @@ CREATE TABLE alerts (
 
 ## 7. Error Response Shape
 
-All errors return:
+All errors use the envelope defined in [§0](#0-response-envelope):
+
 ```json
 {
-  "error": "Human-readable message",
-  "code": "MACHINE_READABLE_CODE",
-  "details": { /* optional */ }
+  "success": false,
+  "error": {
+    "message": "Human-readable message",
+    "code": "MACHINE_READABLE_CODE",
+    "details": { /* optional */ }
+  }
 }
 ```
 
