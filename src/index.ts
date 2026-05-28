@@ -3,6 +3,8 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
+import { geofencesRouter } from './routes/geofences.js';
+import { vehiclesRouter } from './routes/vehicles.js';
 import { sendSuccess } from './utils/apiResponse.js';
 
 const app = express();
@@ -14,6 +16,8 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/vehicles', vehiclesRouter);
+app.use('/api/geofences', geofencesRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
