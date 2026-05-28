@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { Router } from 'express';
+import { z } from 'zod';
 import { db } from '../db/client.js';
 import { vehicles, type Vehicle } from '../db/schema.js';
 import { getAuthUser, requireAuth } from '../middleware/auth.js';
@@ -7,6 +8,8 @@ import { HttpError } from '../middleware/error.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { getVehicleState } from '../state/vehicleState.js';
+import { queryVehicleHistory } from '../influx/queries.js';
+import type { AuthUser } from '../middleware/auth.js';
 
 export const vehiclesRouter = Router();
 
@@ -35,6 +38,30 @@ function toDto(vehicle: Vehicle): VehicleDto {
   };
 }
 
+async function loadVehicleForUser(
+  id: string,
+  user: AuthUser,
+): Promise<Vehicle> {
+  const [vehicle] = await db
+    .select()
+    .from(vehicles)
+    .where(eq(vehicles.id, id))
+    .limit(1);
+
+  if (!vehicle) {
+    throw new HttpError(404, 'Vehicle not found', 'NOT_FOUND');
+  }
+  if (user.role !== 'admin' && vehicle.assignedTo !== user.id) {
+    throw new HttpError(403, 'Forbidden', 'FORBIDDEN');
+  }
+  return vehicle;
+}
+
+const historyQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+
 vehiclesRouter.use(requireAuth);
 
 vehiclesRouter.get(
@@ -58,22 +85,24 @@ vehiclesRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     const user = getAuthUser(req);
-    const { id } = req.params;
-
-    const [vehicle] = await db
-      .select()
-      .from(vehicles)
-      .where(eq(vehicles.id, id))
-      .limit(1);
-
-    if (!vehicle) {
-      throw new HttpError(404, 'Vehicle not found', 'NOT_FOUND');
-    }
-
-    if (user.role !== 'admin' && vehicle.assignedTo !== user.id) {
-      throw new HttpError(403, 'Forbidden', 'FORBIDDEN');
-    }
-
+    const vehicle = await loadVehicleForUser(req.params.id, user);
     sendSuccess(res, toDto(vehicle));
+  }),
+);
+
+vehiclesRouter.get(
+  '/:id/history',
+  asyncHandler(async (req, res) => {
+    const user = getAuthUser(req);
+    const vehicle = await loadVehicleForUser(req.params.id, user);
+
+    const { from, to } = historyQuerySchema.parse(req.query);
+    const toDate = to ? new Date(to) : new Date();
+    const fromDate = from
+      ? new Date(from)
+      : new Date(toDate.getTime() - 60 * 60 * 1000);
+
+    const history = await queryVehicleHistory(vehicle.id, fromDate, toDate);
+    sendSuccess(res, history);
   }),
 );
